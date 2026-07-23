@@ -4,97 +4,45 @@
 
 # It's MyTabs
 
-<a target="_blank" href="https://github.com/louislam/uptime-kuma"><img src="https://img.shields.io/github/stars/louislam/its-mytabs?style=flat" /></a>
-<a target="_blank" href="https://hub.docker.com/r/louislam/uptime-kuma"><img src="https://img.shields.io/docker/pulls/louislam/its-mytabs" /></a>
-<a target="_blank" href="https://hub.docker.com/r/louislam/uptime-kuma"><img src="https://img.shields.io/docker/v/louislam/its-mytabs/latest?label=docker%20image%20ver." /></a>
-<a target="_blank" href="https://github.com/louislam/uptime-kuma"><img src="https://img.shields.io/github/last-commit/louislam/its-mytabs" /></a>
+<a target="_blank" href="https://github.com/juneauwang/its-mytabs"><img src="https://img.shields.io/github/stars/juneauwang/its-mytabs?style=flat" /></a>
 
 Open source, web based, self hostable guitar/bass tab viewer and player, similar to Songsterr.
 
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/d7859f4a-8ae0-41e2-bdeb-93b900cc0220" />
 <img width="200"  alt="image" src="https://github.com/user-attachments/assets/c980d516-8f6d-4cca-8a59-4a1a4cc75b1b" />
 
-## Live Demo
-
-https://its-mytabs.kuma.pet/tab/1?audio=youtube-VuKSlOT__9s&track=2
-
 ## Features
 
 - Free and open source (MIT License)
 - Supports guitar tabs and bass tabs
-- Sync your tabs with audio files (.mp3, .ogg) or Youtube videos
+- Sync your tabs with audio files (.mp3, .ogg), Youtube videos, or **Bilibili videos**
 - MIDI Synth - able to mute tracks and solo tracks
 - Supports .gp, .gpx, .gp3, .gp4, .gp5, .musicxml, .capx formats
-- Simple UI/UX
-- Mobile friendly
-- Offer different cursor modes:
-  - No cursor (just auto scroll the tab) - You can use it to learn to coop with drums, not just following the cursor
-  - Highlight the current bar
-  - Follow cursor
-- Notes coloring
+- Simple UI/UX, mobile friendly
+- Multiple cursor modes: none, highlight bar, follow cursor
+- Note coloring per string
 - Dark/Light tab colors
-- Able to show the score view instead of tab view
-- Able to share tabs with others with a link
-- **🎸 Online Note Editor** — Edit notes directly on the score: change fret, string, duration, techniques (ghost note, dead note, let ring, palm mute, staccato, slide, hammer on/pull off), add/delete notes. Keyboard shortcuts supported. Save as `.gp` format.
-- **🌐 i18n Support** — Simplified Chinese and English built-in. Switch languages via the footer buttons. Easy to add more languages.
+- Score view alongside tab view
+- Share tabs with others via link
+- **🎸 Online Note Editor** — Edit notes directly on the score: change fret, string, duration, techniques. Keyboard shortcuts. Save as `.gp` format.
+- **🌐 i18n Support** — Simplified Chinese and English. Switch in footer. Easy to add more languages.
 
-## Installation
-
-Support: x64, ARM64
-
-Tip: Youtube videos may not work on a private ip address (e.g. 192.168.x.x), use `localhost` or a public ip/domain instead.
-
-### Windows (exe)
-
-Download the latest release (its-mytabs-v1.x.x-windows.zip) from [Releases](https://github.com/louislam/its-mytabs/releases/latest) page, unzip it, and run `its-mytabs.exe`.
-
-### Docker Compose
-
-Download the [compose.yaml]() file and put it in an empty folder.
-
-```yaml
-services:
-    app:
-        image: louislam/its-mytabs:1
-        ports:
-            # Host Port:Container Port
-            - "47777:47777"
-        volumes:
-            # Host Path:Container Path
-            - ./data:/app/data
-        restart: unless-stopped
-```
-
-```bash
-docker compose up  # Run in foreground
-# or
-docker compose up -d  # Run in background
-```
-
-Go to `http://localhost:47777` to access the web UI.
-
-### Docker
-
-```bash
-docker run -d --name its-mytabs -p 47777:47777 -v its-mytabs:/app/data --restart unless-stopped louislam/its-mytabs:1
-```
-
-Go to `http://localhost:47777` to access the web UI.
-
-### Deno (Non Docker) (Linux/Windows/MacOS)
+## Installation (Deno)
 
 Requirements:
-
-- [Deno](https://deno.land/) 2.4.4 or above
+- [Deno](https://deno.land/) 2.x or above
 - Git
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (for Bilibili video download)
 
 ```bash
-git clone https://github.com/louislam/its-mytabs.git
+git clone https://github.com/juneauwang/its-mytabs.git
 cd its-mytabs
 
-# Check out the latest version from Release page
-git checkout 1.X.X --force
-deno task setup
+# Install dependencies
+deno install
+cd frontend && deno install && cd ..
+
+# Start production server
 deno task start
 ```
 
@@ -103,62 +51,53 @@ Go to `http://localhost:47777` to access the web UI.
 ## Screenshots
 
 <img width="300"  alt="image" src="https://github.com/user-attachments/assets/266c6c5a-ae86-4b88-8305-3ae120cf4dd8" />
-
 <img width="300"  alt="image" src="https://github.com/user-attachments/assets/a57293a4-5399-4a76-a14d-da026d0c4a7a" />
-
 <img width="300" alt="image" src="https://github.com/user-attachments/assets/972aa28a-1235-465a-be47-ed2bc9bb3035" />
-
 <img width="300" alt="image" src="https://github.com/user-attachments/assets/a617af33-ba33-4022-b9d2-6fe96e11e85d" />
 
 ## Environment Variables
 
-You can create a `.env` file to use these env vars.
+Create a `.env` file in the project root:
 
 ```ini
-# (string) Server Host (Default: not set, bind to all interfaces)
+# Server Host (Default: bind to all interfaces)
 MYTABS_HOST=
 
-# (string) Server Port (Default: 47777)
+# Server Port (Default: 47777)
 MYTABS_PORT=47777
-
-# (boolean) Whether to launch the browser when starting the app (Desktop only) (Default: true)
-MYTABS_LAUNCH_BROWSER=true
 ```
 
 ## Keyboard Shortcuts
 
 ### Tab Player
 
-| Key         | Description                                            | Since Version |
-| ----------- | ------------------------------------------------------ | ------------- |
-| Space       | Toggle Play / Pause                                    | Initial       |
-| Arrow Left  | Move cursor to the previous bar                        | 1.5.0         |
-| Arrow Right | Move cursor to the next bar                            | 1.5.0         |
-| Arrow Up    | Restart - Play from the start of the highlighted range | 1.5.0         |
-| S           | Play from the first bar containing notes (-2 offset)   | 1.5.0         |
+| Key         | Description                                            |
+| ----------- | ------------------------------------------------------ |
+| Space       | Toggle Play / Pause                                    |
+| Arrow Left  | Move cursor to the previous bar                        |
+| Arrow Right | Move cursor to the next bar                            |
+| Arrow Up    | Restart - Play from start of highlighted range         |
+| S           | Play from first bar containing notes (-2 offset)       |
 
-### Note Editor (when Edit Mode is active)
+### Note Editor (Edit Mode)
 
-| Key               | Description                        | Since Version |
-| ----------------- | ---------------------------------- | ------------- |
-| Arrow Up / Down   | Increase / Decrease fret           | 1.7.0         |
-| [ / ]             | Switch to previous / next string   | 1.7.0         |
-| Delete / Backspace| Delete selected note               | 1.7.0         |
-| 1 / 2 / 3 / 4 / 5 / 6 | Set duration (whole to 32nd)   | 1.7.0         |
-| . (period)        | Cycle dots                         | 1.7.0         |
-| Ctrl+S            | Save to server                     | 1.7.0         |
-| Esc               | Exit edit mode                     | 1.7.0         |
+| Key               | Description                        |
+| ----------------- | ---------------------------------- |
+| Arrow Up / Down   | Increase / Decrease fret           |
+| [ / ]             | Switch to previous / next string   |
+| Delete / Backspace| Delete selected note               |
+| 1 / 2 / 3 / 4 / 5 / 6 | Set duration (whole to 32nd)   |
+| . (period)        | Cycle dots                         |
+| Ctrl+S            | Save to server                     |
+| Esc               | Exit edit mode                     |
 
 ## Motivation
 
 A few months ago, I saw a music game called Rocksmith 2014 Remastered on sale on Steam. I bought it, grabbed my brother's abandoned bass, and started playing.
 
-I had 100+ hours in the game, and I loved it. However, I started to realize that I was just following the screen and hitting notes, I cannot actually do anything outside the game. So I decided to
-actually learn to play bass, learn how to read the tab.
+I had 100+ hours in the game, and I loved it. However, I started to realize that I was just following the screen and hitting notes, I cannot actually do anything outside the game. So I decided to actually learn to play bass, learn how to read the tab.
 
-So I found many tools online such as `MuseScore`, `Soundslice`. Eventually, I subscribed to `Songsterr`, I absolutely love it, especial for its UI/UX. However, it is not perfect, many songs don't sync
-with youtube/audio source correctly, the cursor is confusing due to out-fo-sync issues. There is no manual sync feature. I have also looked into other tools like Soundslice, Guitar Pro 8, which offer
-sync tools, but they are hard to use. Since most of my favourite songs follow the bpm perfectly, I just want something that able to sync the first bar, and good to go.
+So I found many tools online such as `MuseScore`, `Soundslice`. Eventually, I subscribed to `Songsterr`, I absolutely love it, especial for its UI/UX. However, it is not perfect, many songs don't sync with youtube/audio source correctly, the cursor is confusing due to out-fo-sync issues. There is no manual sync feature. I have also looked into other tools like Soundslice, Guitar Pro 8, which offer sync tools, but they are hard to use. Since most of my favourite songs follow the bpm perfectly, I just want something that able to sync the first bar, and good to go.
 
 Plus, I am not a fan of subscription models.
 
@@ -166,43 +105,36 @@ After searching, I could not find any open source projects that is similar to `S
 
 Don't forget to ⭐ this repo if you like it!
 
-## Side Notes
-
-The demo tab Hare no Hi ni (ハレの日に) by Reira Ushio (汐れいら), which is the ending song from the anime "The Fragrant Flower Blooms with Dignity" (薫る花は凛と咲く).
-
-Beautiful song, and I love the bass line.
-
-It was AI generated on Songsterr, and the bass tab was inaccurate, so I fixed it by my ear.
-
-Since I am a beginner, I re-arranged some parts (fewer slide) to make it easier to play. Hope you enjoy it too.
-
-Reddit post: https://www.reddit.com/r/selfhosted/comments/1nuisjc/i_built_a_selfhosted_guitarbass_tab_player
-
 ## Free Resources
 
 - [Ultimate Guitar](https://www.ultimate-guitar.com/) - Some free tabs in *.gp format
-
 - [911Tabs](https://www.911tabs.com/) - Search engine for tabs
-- [MuseScore (Free Download filtered)](https://musescore.com/sheetmusic?instrument=72%2C73&recording_type=free-download) - Some free tabs in MusicXML format
+- [MuseScore](https://musescore.com/sheetmusic?instrument=72%2C73&recording_type=free-download) - Some free tabs in MusicXML format
 - [GProTab](https://gprotab.net/) - Free Guitar Pro tabs in *.gp format
 
 ## Special Thanks
 
 - [AlphaTab](https://github.com/CoderLine/alphaTab) by [Daniel Kuschny](https://github.com/Danielku15) - The tab rendering engine
+- [It's MyTabs](https://github.com/louislam/its-mytabs) by [Louis Lam](https://github.com/louislam) - The original project
 
 ## Development
 
-- Install Deno from https://deno.land/
-- Install dependencies:
+Requirements: [Deno](https://deno.land/) 2.x
 
 ```bash
-# Install backend dependencies
+git clone https://github.com/juneauwang/its-mytabs.git
+cd its-mytabs
+
+# Install deps
 deno install
+cd frontend && deno install && cd ..
 
-# Install frontend dependencies
-cd frontend && deno install
-cd ..
-
-# Start development server (Hot Reload enabled)
+# Dev servers (backend :47777 + frontend :5173 with HMR)
 deno task dev
+
+# Or run separately if dev task hangs:
+# Terminal 1: deno run --allow-all --watch backend/main.ts
+# Terminal 2: cd frontend && deno run -A npm:vite
 ```
+
+This is a fork of [louislam/its-mytabs](https://github.com/louislam/its-mytabs) with additional features.
