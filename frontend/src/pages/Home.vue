@@ -21,7 +21,11 @@ export default defineComponent({
     },
 
     async mounted() {
-        this.isLoggedIn = await isLoggedIn();
+        try {
+            this.isLoggedIn = await isLoggedIn();
+        } catch {
+            this.isLoggedIn = false;
+        }
         this.setting = getSetting();
 
         if (!this.isLoggedIn) {

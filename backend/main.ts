@@ -4,7 +4,6 @@ import * as fs from "@std/fs";
 import { auth, checkLogin, getCurrentSession, isFinishSetup, isLoggedIn } from "./auth.ts";
 import { SignUpSchema, SyncRequestSchema, UpdateTabFavSchema, UpdateTabInfoSchema, YoutubeAddDataSchema, BilibiliAddDataSchema } from "./zod.ts";
 import { db, hasUser, isInitDB, kv, migrate } from "./db.ts";
-import { cors } from "@hono/hono/cors";
 import { serveStatic } from "@hono/hono/deno";
 import { appVersion, checkFilename, dataDir, devOriginList, getFrontendDir, getSourceDir, host, isDemoMode, isDev, port, start, tabDir } from "./util.ts";
 import * as path from "@std/path";
@@ -83,8 +82,44 @@ export async function main() {
 
     const app = new Hono();
 
+    // Create a standalone fetch handler with CORS support
+    async function fetchHandler(request: Request, ...args: unknown[]): Promise<Response> {
+        const origin = request.headers.get("Origin") || "";
+
+        // Handle OPTIONS preflight directly for allowed origins
+        if (request.method === "OPTIONS" && devOriginList.includes(origin)) {
+            return new Response(null, {
+                status: 204,
+                headers: {
+                    "Access-Control-Allow-Origin": origin,
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+                    "Access-Control-Allow-Credentials": "true",
+                    "Access-Control-Max-Age": "86400",
+                },
+            });
+        }
+
+        const res = await app.fetch(request, ...args as any[]);
+
+        // Add CORS headers for allowed origins
+        if (devOriginList.includes(origin)) {
+            const headers = new Headers(res.headers);
+            headers.set("Access-Control-Allow-Origin", origin);
+            headers.set("Access-Control-Allow-Credentials", "true");
+            headers.set("Access-Control-Expose-Headers", "Set-Cookie");
+            return new Response(res.body, {
+                status: res.status,
+                statusText: res.statusText,
+                headers,
+            });
+        }
+
+        return res;
+    }
+
     httpServer = serve({
-        fetch: app.fetch,
+        fetch: fetchHandler,
         port,
         hostname: host,
     }, (info) => {
@@ -111,20 +146,41 @@ export async function main() {
     // Socket Controller
     const io = socketIO(httpServer);
 
-    // CORS for development
-    if (isDev()) {
-        app.use(
-            "/api/*",
-            cors({
-                credentials: true,
-                origin: devOriginList,
-            }),
-        );
-    }
-
     // Better-Auth routes
-    app.all("/api/auth/*", (c) => {
-        return auth.handler(c.req.raw);
+    app.all("/api/auth/*", async (c) => {
+        // Handle CORS preflight (OPTIONS) for dev mode
+        if (isDev() && c.req.method === "OPTIONS") {
+            const origin = c.req.header("Origin") || "";
+            if (devOriginList.includes(origin)) {
+                return c.newResponse(null, 204, {
+                    "Access-Control-Allow-Origin": origin,
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+                    "Access-Control-Allow-Credentials": "true",
+                    "Access-Control-Max-Age": "86400",
+                });
+            }
+        }
+
+        const res = await auth.handler(c.req.raw);
+
+        // Add CORS headers for dev mode
+        if (isDev()) {
+            const origin = c.req.header("Origin") || "";
+            if (devOriginList.includes(origin)) {
+                const headers = new Headers(res.headers);
+                headers.set("Access-Control-Allow-Origin", origin);
+                headers.set("Access-Control-Allow-Credentials", "true");
+                headers.set("Access-Control-Expose-Headers", "Set-Cookie");
+                return new Response(res.body, {
+                    status: res.status,
+                    statusText: res.statusText,
+                    headers,
+                });
+            }
+        }
+
+        return res;
     });
 
     // Is Disable Sign Up

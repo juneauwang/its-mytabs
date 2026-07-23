@@ -353,7 +353,11 @@ export default defineComponent({
 
     // Mounted
     async mounted() {
-        this.isLoggedIn = await isLoggedIn();
+        try {
+            this.isLoggedIn = await isLoggedIn();
+        } catch {
+            this.isLoggedIn = false;
+        }
         this.setting = getSetting();
         this.toolbarHidden = this.setting.toolbarAutoHide;
         this.tabID = this.$route.params.id;

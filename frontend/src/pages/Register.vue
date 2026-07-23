@@ -16,10 +16,14 @@ export default defineComponent({
         };
     },
     async mounted() {
-        const res = await fetch(baseURL + "/api/is-finish-setup");
-        const isFinishSetup = await res.json();
-        if (isFinishSetup) {
-            this.$router.push("/");
+        try {
+            const res = await fetch(baseURL + "/api/is-finish-setup");
+            const isFinishSetup = await res.json();
+            if (isFinishSetup) {
+                this.$router.push("/");
+            }
+        } catch {
+            // Silently ignore — CORS or network error; just show the register form
         }
     },
     methods: {
@@ -33,19 +37,27 @@ export default defineComponent({
             }
 
             this.processing = true;
-            const { data, error } = await authClient.signUp.email({
-                email: this.email,
-                name: "Admin",
-                password: this.password,
-            });
 
-            if (error) {
+            try {
+                const { data, error } = await authClient.signUp.email({
+                    email: this.email,
+                    name: "Admin",
+                    password: this.password,
+                });
+
+                if (error) {
+                    notify({
+                        title: error.message,
+                        type: "error",
+                    });
+                } else {
+                    this.$router.push("/");
+                }
+            } catch (e) {
                 notify({
-                    title: error.message,
+                    title: e.message || "Registration failed",
                     type: "error",
                 });
-            } else {
-                this.$router.push("/");
             }
 
             this.processing = false;

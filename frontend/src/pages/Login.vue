@@ -17,10 +17,14 @@ export default defineComponent({
         };
     },
     async mounted() {
-        const res = await fetch(baseURL + "/api/is-finish-setup");
-        const isFinishSetup = await res.json();
-        if (!isFinishSetup) {
-            this.$router.push("/register");
+        try {
+            const res = await fetch(baseURL + "/api/is-finish-setup");
+            const isFinishSetup = await res.json();
+            if (!isFinishSetup) {
+                this.$router.push("/register");
+            }
+        } catch {
+            // Silently ignore — CORS or network error; just show the login form
         }
     },
     methods: {
@@ -28,22 +32,30 @@ export default defineComponent({
             this.processing = true;
             this.error = "";
 
-            const { data, error } = await authClient.signIn.email({
-                email: this.email,
-                password: this.password,
-                rememberMe: this.rememberMe,
-            });
-
-            if (error) {
-                this.error = error.message;
-                notify({
-                    title: error.message,
-                    type: "error",
+            try {
+                const { data, error } = await authClient.signIn.email({
+                    email: this.email,
+                    password: this.password,
+                    rememberMe: this.rememberMe,
                 });
-            } else {
-                this.$router.push("/");
+
+                if (error) {
+                    this.error = error.message;
+                    notify({
+                        title: error.message,
+                        type: "error",
+                    });
+                } else {
+                    this.$router.push("/");
+                    notify({
+                        title: "Logged in successfully",
+                    });
+                }
+            } catch (e) {
+                this.error = e.message || "Login failed";
                 notify({
-                    title: "Logged in successfully",
+                    title: this.error,
+                    type: "error",
                 });
             }
 

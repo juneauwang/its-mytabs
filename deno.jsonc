@@ -13,6 +13,7 @@
 
         // Addons
         "mpchc-controller": "deno run --allow-all extra/mpchc-controller.ts",
+        "reset-user": "deno run --allow-all extra/reset-user.ts",
 
         // Dev
         "dev": "deno task build-frontend && deno run -A npm:concurrently -k -r \"deno run -A npm:wait-on tcp:47777 && deno task frontend-dev\" \"deno task backend-dev\"",
