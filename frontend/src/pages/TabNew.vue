@@ -108,7 +108,7 @@ export default defineComponent({
 
 <template>
     <div class="container my-container">
-        <div class="display-6 mb-4 mt-5">Upload Guitar Pro or MusicXML files</div>
+        <div class="display-6 mb-4 mt-5">{{ $t('tabNew.uploadTitle') }}</div>
 
         <Vue3Dropzone
             v-model="files"
@@ -117,8 +117,8 @@ export default defineComponent({
             :maxFiles="10"
             @error="dropzoneError"
         >
-            <template #title>Drop your tabs here</template>
-            <template #description>Supports {{ supportedFormatCommaString }}</template>
+            <template #title>{{ $t('tabNew.dropTabsHere') }}</template>
+            <template #description>{{ $t('tabNew.supports') }} {{ supportedFormatCommaString }}</template>
         </Vue3Dropzone>
 
         <button
@@ -126,30 +126,29 @@ export default defineComponent({
             class="btn btn-primary w-100 mt-4"
             :disabled="isUploading"
         >
-            {{ isUploading ? "Uploading..." : "Upload" }}
+            {{ isUploading ? $t('common.uploading') : $t('common.upload') }}
         </button>
 
         <ul class="mt-3">
             <li>
-                <a href="#" @click.prevent='createEmpty("bass")' class="me-3">Create Empty Bass Tab</a>
+                <a href="#" @click.prevent='createEmpty("bass")' class="me-3">{{ $t('tabNew.createEmptyBass') }}</a>
             </li>
             <li>
-                <a href="#" @click.prevent='createEmpty("guitar")'>Create Empty Guitar Tab</a>
+                <a href="#" @click.prevent='createEmpty("guitar")'>{{ $t('tabNew.createEmptyGuitar') }}</a>
             </li>
         </ul>
 
         <div></div>
 
-        <h4 class="mt-5">Free Resources</h4>
+        <h4 class="mt-5">{{ $t('tabNew.freeResources') }}</h4>
 
         <ul class="free-resources">
-            <li><a href="https://www.ultimate-guitar.com/" target="_blank" rel="noopener">Ultimate Guitar</a><br />Some free tabs in *.gp format</li>
-            <li><a href="https://www.911tabs.com/" target="_blank" rel="noopener">911Tabs</a><br />Search engine for tabs</li>
+            <li><a href="https://www.ultimate-guitar.com/" target="_blank" rel="noopener">{{ $t('tabNew.ultimateGuitar') }}</a><br />{{ $t('tabNew.ultimateGuitarDesc') }}</li>
+            <li><a href="https://www.911tabs.com/" target="_blank" rel="noopener">{{ $t('tabNew.tabs911') }}</a><br />{{ $t('tabNew.tabs911Desc') }}</li>
             <li>
-                <a href="https://musescore.com/sheetmusic?instrument=72%2C73&recording_type=free-download" target="_blank" rel="noopener">MuseScore (Free Download filtered)</a><br />Some free tabs in
-                MusicXML format
+                <a href="https://musescore.com/sheetmusic?instrument=72%2C73&recording_type=free-download" target="_blank" rel="noopener">{{ $t('tabNew.museScore') }}</a><br />{{ $t('tabNew.museScoreDesc') }}
             </li>
-            <li><a href="https://gprotab.net/" target="_blank" rel="noopener">GProTab</a><br />Free Guitar Pro tabs in *.gp format</li>
+            <li><a href="https://gprotab.net/" target="_blank" rel="noopener">{{ $t('tabNew.gproTab') }}</a><br />{{ $t('tabNew.gproTabDesc') }}</li>
         </ul>
     </div>
 </template>

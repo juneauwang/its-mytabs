@@ -6,6 +6,7 @@ import { notify } from "@kyvg/vue3-notification";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { isLoggedIn } from "../auth-client.js";
 import { getKeySignature } from "../util.ts";
+import NoteEditor from "../components/NoteEditor.vue";
 
 const alphaTab = await import("@coderline/alphatab");
 const { ScrollMode, StaveProfile } = alphaTab;
@@ -13,6 +14,7 @@ const { ScrollMode, StaveProfile } = alphaTab;
 const speedActionBuffer = new ActionBuffer(1000);
 const syncOffsetYoutubeActionBuffer = new ActionBuffer(200);
 const syncOffsetAudioActionBuffer = new ActionBuffer(200);
+const syncOffsetBilibiliActionBuffer = new ActionBuffer(200);
 
 export default defineComponent({
     /**
@@ -29,9 +31,13 @@ export default defineComponent({
 
     alphaTabYoutubeHandler: null,
 
+    alphaTabBilibiliHandler: null,
+
     youtubePlayer: null,
 
-    components: { FontAwesomeIcon, BDropdownDivider, BDropdownItem, BDropdown },
+    bilibiliPlayer: null,
+
+    components: { FontAwesomeIcon, BDropdownDivider, BDropdownItem, BDropdown, NoteEditor },
     emits: ["setFixedHeader"],
     data() {
         return {
@@ -56,13 +62,23 @@ export default defineComponent({
             muteTrackList: {},
             currentAudio: "synth",
             youtubeList: [],
+            bilibiliList: [],
             audioList: [],
             audio: {},
+            bilibili: {},
             scrollMode: ScrollMode.Continuous,
             keySignature: "",
             playbackRange: null,
+            editMode: false,
 
             keyEvents: (e) => {
+                console.log("[Tab] keyEvents fired, code:", e.code, "editMode:", this.editMode);
+                // If in edit mode, let NoteEditor handle keyboard
+                if (this.editMode) {
+                    console.log("[Tab] keyEvents: editMode=true, returning to let NoteEditor handle it");
+                    return;
+                }
+
                 // Do not handle these tagName, because the only input is sync point, it is weird when play space to test the sync point
                 // It will type a space in the input instead of playing the music
                 // element.tagName === "INPUT" || element.tagName === "TEXTAREA" || element.isContentEditable
@@ -102,6 +118,8 @@ export default defineComponent({
         syncMethod() {
             if (this.currentAudio.startsWith("youtube-")) {
                 return this.youtube.syncMethod;
+            } else if (this.currentAudio.startsWith("bilibili-")) {
+                return this.bilibili.syncMethod;
             } else if (this.currentAudio.startsWith("audio-")) {
                 return this.audio.syncMethod;
             } else {
@@ -123,6 +141,11 @@ export default defineComponent({
                     return;
                 }
                 obj = this.youtube;
+            } else if (this.currentAudio.startsWith("bilibili-")) {
+                if (!this.bilibili) {
+                    return;
+                }
+                obj = this.bilibili;
             } else if (this.currentAudio.startsWith("audio-")) {
                 if (!this.audio) {
                     return;
@@ -153,6 +176,13 @@ export default defineComponent({
                         this.saveYoutube();
                     }
                 });
+            } else if (this.currentAudio.startsWith("bilibili-")) {
+                this.api.player.output.handler = this.alphaTabBilibiliHandler;
+                syncOffsetBilibiliActionBuffer.run(() => {
+                    if (oldVal !== -1) {
+                        this.saveBilibili();
+                    }
+                });
             } else {
                 this.api.player.output.handler = this.audioHandler;
                 syncOffsetAudioActionBuffer.run(() => {
@@ -168,6 +198,13 @@ export default defineComponent({
                 return;
             }
             this.simpleSyncSecond = parseFloat((this.youtube.simpleSync / 1000).toFixed(2));
+        },
+
+        "bilibili.simpleSync"() {
+            if (!this.api || !this.bilibili) {
+                return;
+            }
+            this.simpleSyncSecond = parseFloat((this.bilibili.simpleSync / 1000).toFixed(2));
         },
 
         "audio.simpleSync"() {
@@ -289,6 +326,9 @@ export default defineComponent({
             } else if (this.currentAudio.startsWith("youtube-")) {
                 const videoID = this.currentAudio.substring(8);
                 await this.initYoutube(videoID);
+            } else if (this.currentAudio.startsWith("bilibili-")) {
+                const bvid = this.currentAudio.substring(9);
+                await this.initBilibili(bvid);
             } else if (this.currentAudio.startsWith("audio-")) {
                 const filename = this.currentAudio.substring(6);
                 await this.initAudio(filename);
@@ -416,6 +456,7 @@ export default defineComponent({
             if (data.tab) {
                 this.tab = data.tab;
                 this.youtubeList = data.youtubeList;
+                this.bilibiliList = data.bilibiliList;
                 this.audioList = data.audioList;
             }
 
@@ -743,6 +784,7 @@ export default defineComponent({
             this.scrollMode = ScrollMode.Continuous;
             this.soloTrackID = -1;
             this.youtube = {};
+            this.bilibili = {};
             this.simpleSyncSecond = -1;
             this.muteTrackList = {};
             this.playbackRange = null;
@@ -893,6 +935,11 @@ export default defineComponent({
 
         async audioYoutube(videoID) {
             this.currentAudio = "youtube-" + videoID;
+            this.closeAllList();
+        },
+
+        async audioBilibili(bvid) {
+            this.currentAudio = "bilibili-" + bvid;
             this.closeAllList();
         },
 
@@ -1216,6 +1263,145 @@ export default defineComponent({
             clearTimeout(ytWarning);
         },
 
+        async initBilibili(bvid) {
+            this.closeAllList();
+
+            // Clear any lingering interval from previous bilibili session
+            if (this._bilibiliInterval) {
+                window.clearInterval(this._bilibiliInterval);
+                this._bilibiliInterval = 0;
+            }
+
+            // Get offset from bilibiliList
+            for (const bl of this.bilibiliList) {
+                if (bl.bvid === bvid) {
+                    this.bilibili = bl;
+                    if (bl.syncMethod === "advanced") {
+                        this.advancedSync(bl.advancedSync);
+                    } else {
+                        this.simpleSyncSecond = parseFloat((bl.simpleSync / 1000).toFixed(2));
+                        this.simpleSync(bl.simpleSync);
+                    }
+                }
+            }
+
+            // Bug? If change to EnabledExternalMedia, sync point can not be applied correctly.
+            // So it must change to EnabledSynthesizer first, then change to EnabledExternalMedia
+            this.api.settings.player.playerMode = alphaTab.PlayerMode.EnabledSynthesizer;
+            this.api.updateSettings();
+
+            // Create video element if not exists
+            if (!this.bilibiliPlayer) {
+                const playerElement = document.createElement("video");
+                playerElement.controls = true;
+                playerElement.style.width = "320px";
+                playerElement.style.height = "180px";
+                this.$refs.bilibiliContainer.appendChild(playerElement);
+                this.bilibiliPlayer = playerElement;
+            }
+
+            const player = this.bilibiliPlayer;
+
+            const alphaTabBilibiliHandler = {
+                get backingTrackDuration() {
+                    const duration = player.duration;
+                    return Number.isFinite(duration) ? duration * 1000 : 0;
+                },
+                get playbackRate() {
+                    return player.playbackRate;
+                },
+                set playbackRate(value) {
+                    player.playbackRate = value;
+                },
+                get masterVolume() {
+                    return player.volume;
+                },
+                set masterVolume(value) {
+                    player.volume = value;
+                },
+                seekTo(time) {
+                    player.currentTime = time / 1000;
+                },
+                play() {
+                    player.play();
+                },
+                pause() {
+                    player.pause();
+                },
+            };
+
+            this.alphaTabBilibiliHandler = alphaTabBilibiliHandler;
+
+            this.api.settings.player.playerMode = alphaTab.PlayerMode.EnabledExternalMedia;
+            this.api.updateSettings();
+
+            this.api.player.output.handler = this.alphaTabBilibiliHandler;
+
+            // Set up time update via polling (same as YouTube approach — more stable than timeupdate event)
+
+            player.addEventListener("play", () => {
+                this.playing = true;
+                this.api.play();
+                this._bilibiliInterval = window.setInterval(() => {
+                    this.api?.player?.output?.updatePosition(player.currentTime * 1000);
+                }, 100);
+            });
+            player.addEventListener("pause", () => {
+                if (player.ended) return;
+                window.clearInterval(this._bilibiliInterval);
+                this.playing = false;
+                this.api.pause();
+            });
+            player.addEventListener("ended", () => {
+                window.clearInterval(this._bilibiliInterval);
+                if (this.isLooping) {
+                    player.currentTime = 0;
+                    player.play();
+                } else {
+                    this.playing = false;
+                    this.api.pause();
+                }
+            });
+            player.addEventListener("volumechange", () => {
+                this.api.masterVolume = player.volume;
+            });
+            player.addEventListener("ratechange", () => {
+                this.api.playbackSpeed = player.playbackRate;
+            });
+
+            // Set video source
+            const videoPath = baseURL + `/api/tab/${this.tabID}/bilibili/${bvid}/video`;
+            player.src = videoPath;
+            player.load();
+            player.playbackRate = this.api.playbackSpeed;
+
+            this.pause();
+        },
+
+        async saveBilibili() {
+            let res;
+            try {
+                res = await fetch(baseURL + `/api/tab/${this.tabID}/bilibili/${this.bilibili.bvid}`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        syncMethod: this.bilibili.syncMethod,
+                        simpleSync: this.bilibili.simpleSync,
+                        advancedSync: this.bilibili.advancedSync,
+                    }),
+                });
+                if (await checkFetch(res)) {
+                    console.log("Bilibili sync saved");
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+
         getStaveProfile() {
             if (this.setting.scoreStyle === "tab" || this.setting.scoreStyle === "horizontal-tab") {
                 return StaveProfile.Tab;
@@ -1356,6 +1542,29 @@ export default defineComponent({
             this.$router.push(`/tab/${this.tabID}/edit/info`);
         },
 
+        toggleEditMode() {
+            if (!this.editMode) {
+                // Enter edit mode
+                this.editMode = true;
+            } else {
+                // Exit edit mode - NoteEditor handles its own cleanup
+                this.editMode = false;
+            }
+        },
+
+        onEditorSaved() {
+            // After saving, exit edit mode and reload the score
+            this.editMode = false;
+            notify({
+                type: "success",
+                title: "Saved",
+                text: "Tab has been saved successfully.",
+            });
+            // Reload the tab to get the updated file
+            const trackID = this.getConfig("trackID", 0);
+            this.load(trackID);
+        },
+
         hasBackingTrack() {
             return !!this.api.score.backingTrack;
         },
@@ -1461,59 +1670,64 @@ export default defineComponent({
         </div>
         <div ref="bassTabContainer" v-pre></div>
 
-        <!-- Just add a margin, don't let youtube player overlay the tab -->
-        <div :class='{ "yt-margin": currentAudio.startsWith(`youtube-`) }'></div>
+        <!-- Just add a margin, don't let youtube/bilibili player overlay the tab -->
+        <div :class='{ "yt-margin": currentAudio.startsWith(`youtube-`) || currentAudio.startsWith(`bilibili-`) }'></div>
 
         <div class="toolbar" :class='{ "auto-hide": setting.toolbarAutoHide }'>
             <div class="scroll">
                 <div class="track-selector selector" ref="trackSelector">
                     <div class="button" @click='showList("track")'>
                         <span v-if="tracks.length > 0">{{ tracks[selectedTrack].name }}</span>
-                        <span v-else>Loading...</span>
+                        <span v-else>{{ $t('common.loading') }}</span>
                     </div>
                 </div>
 
                 <div class="audio-selector selector" ref="audioSelector">
                     <div class="button" @click='showList("audio")'>
-                        Audio
+                        {{ $t('tab.audio') }}
                     </div>
                 </div>
 
                 <button class="btn btn-warning" @click="playFromHighlightedRange()" v-if="playbackRange">
                     <font-awesome-icon :icon='["fas", "play"]' />
-                    Restart
+                    {{ $t('tab.restart') }}
                 </button>
 
                 <button class="btn btn-primary" @click="playPause" :class="{ active: playing }">
                     <span v-if="!playing">
                         <font-awesome-icon :icon='["fas", "play"]' />
-                        Play
+                        {{ $t('tab.play') }}
                     </span>
                     <span v-else>
                         <font-awesome-icon :icon='["fas", "pause"]' />
-                        Pause
+                        {{ $t('tab.pause') }}
                     </span>
                 </button>
                 <button class="btn btn-secondary" @click="loop()" :class="{ active: isLooping }">
                     <font-awesome-icon :icon='["fas", "check"]' v-if="isLooping" />
-                    Loop
+                    {{ $t('tab.loop') }}
                 </button>
                 <button class="btn btn-secondary" @click="countIn()" :class='{ active: enableCountIn, disabled: currentAudio !== "synth" }'>
                     <font-awesome-icon :icon='["fas", "check"]' v-if="enableCountIn" />
-                    Count in
+                    {{ $t('tab.countIn') }}
                 </button>
                 <button class="btn btn-secondary" @click="metronome()" :class='{ active: enableMetronome, disabled: currentAudio !== "synth" }'>
                     <font-awesome-icon :icon='["fas", "check"]' v-if="enableMetronome" />
-                    Metronome
+                    {{ $t('tab.metronome') }}
                 </button>
 
                 <div class="select-percentage">
-                    Speed: <input type="number" class="form-control" min="0" max="1000" step="1" v-model="speed" /> (%)
+                    {{ $t('tab.speed') }}: <input type="number" class="form-control" min="0" max="1000" step="1" v-model="speed" /> {{ $t('tab.percent') }}
                 </div>
 
                 <div class="btn-edit" v-if="isLoggedIn">
-                    <button class="btn btn-secondary" @click="edit()">
-                        Edit
+                    <button
+                        class="btn"
+                        :class="editMode ? 'btn-warning' : 'btn-secondary'"
+                        @click="toggleEditMode"
+                    >
+                        <font-awesome-icon :icon='["fas", editMode ? "check" : "pen"]' />
+                        {{ editMode ? $t('tab.doneEditing') : $t('tab.edit') }}
                     </button>
                 </div>
             </div>
@@ -1525,10 +1739,10 @@ export default defineComponent({
 
                 <div class="track item" v-for="track in tracks" :key="track.id" :class="{ active: selectedTrack === track.id }">
                     <div class="name" @click="changeTrack(track.id)">{{ track.name }}</div>
-                    <div class="list-button solo" @click="toggleSolo(track.id)" :class="{ active: soloTrackID === track.id }">Solo</div>
-                    <div class="list-button mute" @click="toggleMute(track.id)" :class="{ active: muteTrackList[track.id] }">Mute</div>
+                    <div class="list-button solo" @click="toggleSolo(track.id)" :class="{ active: soloTrackID === track.id }">{{ $t('tab.solo') }}</div>
+                    <div class="list-button mute" @click="toggleMute(track.id)" :class="{ active: muteTrackList[track.id] }">{{ $t('tab.mute') }}</div>
                     <div class="list-button select-percentage">
-                        Volume: <input type="number" min="0" max="1000" step="1" value="100" @change="toggleVolume(track.id, $event.target.value)" /> (%)
+                        {{ $t('tab.volume') }}: <input type="number" min="0" max="1000" step="1" value="100" @change="toggleVolume(track.id, $event.target.value)" /> {{ $t('tab.percent') }}
                     </div>
                 </div>
             </div>
@@ -1539,15 +1753,19 @@ export default defineComponent({
                 </div>
 
                 <div class="audio item" @click="audioSynth" :class='{ active: currentAudio === "synth" }'>
-                    <div class="name">Synth</div>
+                    <div class="name">{{ $t('tab.synth') }}</div>
                 </div>
 
                 <div class="audio item" @click="audioBackingTrack" :class='{ active: currentAudio === "backingTrack" }' v-if="enableBackingTrack">
-                    <div class="name">Embedded Backing Track</div>
+                    <div class="name">{{ $t('tab.embeddedBackingTrack') }}</div>
                 </div>
 
                 <div class="audio item" @click="audioYoutube(youtube.videoID)" v-for="youtube in youtubeList" :key="youtube.id" :class='{ active: currentAudio === "youtube-" + youtube.videoID }'>
-                    <div class="name">Youtube: {{ youtube.videoID }}</div>
+                    <div class="name">{{ $t('tab.youtube') }}: {{ youtube.videoID }}</div>
+                </div>
+
+                <div class="audio item" @click="audioBilibili(bilibili.bvid)" v-for="bilibili in bilibiliList" :key="bilibili.bvid" :class='{ active: currentAudio === "bilibili-" + bilibili.bvid }'>
+                    <div class="name">{{ $t('tab.bilibili') }}: {{ bilibili.bvid }}</div>
                 </div>
 
                 <div class="audio item" @click="audioFile(audio.filename)" v-for="audio in audioList" :key="audio.filename" :class='{ active: currentAudio === "audio-" + audio.filename }'>
@@ -1561,19 +1779,19 @@ export default defineComponent({
                     closeAllList()'
                     :class='{ active: currentAudio === "none" }'
                 >
-                    <div class="name">No Audio (Mute)</div>
+                    <div class="name">{{ $t('tab.noAudio') }}</div>
                 </div>
 
                 <div class="ms-4 me-4 mt-3 mb-3" v-if="isLoggedIn">
-                    <router-link :to="`/tab/${tab.id}/edit/audio`">Add Youtube or Audio File...</router-link>
+                    <router-link :to="`/tab/${tab.id}/edit/audio`">{{ $t('tab.addYoutubeOrAudio') }}</router-link>
                 </div>
             </div>
 
             <!-- USE v-show, because youtube player is not vue  -->
-            <div v-show='currentAudio.startsWith("youtube-") || currentAudio.startsWith("audio-")' class="player-container">
+            <div v-show='currentAudio.startsWith("youtube-") || currentAudio.startsWith("bilibili-") || currentAudio.startsWith("audio-")' class="player-container">
                 <!-- Simple sync edit -->
                 <div class="sync-offset ps-3 pe-3 p-2" v-if='syncMethod === "simple" && isLoggedIn'>
-                    Sync Offset: <input type="number" class="form-control" min="-100000" max="100000" step="0.1" v-model="simpleSyncSecond" /> s
+                    {{ $t('tab.syncOffset') }}: <input type="number" class="form-control" min="-100000" max="100000" step="0.1" v-model="simpleSyncSecond" /> {{ $t('tab.seconds') }}
                 </div>
 
                 <!-- Youtube Player -->
@@ -1581,10 +1799,24 @@ export default defineComponent({
                     <div ref="youtube" class="player"></div>
                 </div>
 
+                <!-- Bilibili Player -->
+                <div v-show='currentAudio.startsWith("bilibili-")'>
+                    <div ref="bilibiliContainer" class="player"></div>
+                </div>
+
                 <!-- Audio Player -->
                 <audio ref="audioPlayer" class="player" controls v-show='currentAudio.startsWith("audio-")' hidden></audio>
             </div>
         </div>
+
+        <NoteEditor
+            v-if="api && editMode"
+            ref="noteEditor"
+            :api="api"
+            :tabID="tabID"
+            @close="editMode = false"
+            @saved="onEditorSaved"
+        />
     </div>
 </template>
 

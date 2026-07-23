@@ -35,6 +35,8 @@ https://its-mytabs.kuma.pet/tab/1?audio=youtube-VuKSlOT__9s&track=2
 - Dark/Light tab colors
 - Able to show the score view instead of tab view
 - Able to share tabs with others with a link
+- **🎸 Online Note Editor** — Edit notes directly on the score: change fret, string, duration, techniques (ghost note, dead note, let ring, palm mute, staccato, slide, hammer on/pull off), add/delete notes. Keyboard shortcuts supported. Save as `.gp` format.
+- **🌐 i18n Support** — Simplified Chinese and English built-in. Switch languages via the footer buttons. Easy to add more languages.
 
 ## Installation
 
@@ -125,7 +127,7 @@ MYTABS_LAUNCH_BROWSER=true
 
 ## Keyboard Shortcuts
 
-Tab Player Keyboard Shortcuts:
+### Tab Player
 
 | Key         | Description                                            | Since Version |
 | ----------- | ------------------------------------------------------ | ------------- |
@@ -134,6 +136,18 @@ Tab Player Keyboard Shortcuts:
 | Arrow Right | Move cursor to the next bar                            | 1.5.0         |
 | Arrow Up    | Restart - Play from the start of the highlighted range | 1.5.0         |
 | S           | Play from the first bar containing notes (-2 offset)   | 1.5.0         |
+
+### Note Editor (when Edit Mode is active)
+
+| Key               | Description                        | Since Version |
+| ----------------- | ---------------------------------- | ------------- |
+| Arrow Up / Down   | Increase / Decrease fret           | 1.7.0         |
+| [ / ]             | Switch to previous / next string   | 1.7.0         |
+| Delete / Backspace| Delete selected note               | 1.7.0         |
+| 1 / 2 / 3 / 4 / 5 / 6 | Set duration (whole to 32nd)   | 1.7.0         |
+| . (period)        | Cycle dots                         | 1.7.0         |
+| Ctrl+S            | Save to server                     | 1.7.0         |
+| Esc               | Exit edit mode                     | 1.7.0         |
 
 ## Motivation
 

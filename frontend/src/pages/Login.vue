@@ -58,17 +58,17 @@ export default defineComponent({
         <div class="form">
             <form @submit.prevent="submit">
                 <div style="font-size: 28px; font-weight: bold" class="mb-5 mt-5">
-                    It's MyTabs
+                    {{ $t("auth.itIsMyTabs") }}
                 </div>
 
                 <div class="form-floating mt-3">
-                    <input id="floatingInput" v-model="email" type="email" class="form-control" :placeholder='$t("Username")' required>
-                    <label for="floatingInput">{{ $t("Email") }}</label>
+                    <input id="floatingInput" v-model="email" type="email" class="form-control" :placeholder='$t("auth.email")' required>
+                    <label for="floatingInput">{{ $t("auth.email") }}</label>
                 </div>
 
                 <div class="form-floating mt-3">
-                    <input id="floatingPassword" v-model="password" type="password" class="form-control" :placeholder='$t("Password")' required>
-                    <label for="floatingPassword">{{ $t("Password") }}</label>
+                    <input id="floatingPassword" v-model="password" type="password" class="form-control" :placeholder='$t("auth.password")' required>
+                    <label for="floatingPassword">{{ $t("auth.password") }}</label>
                 </div>
 
                 <!-- Remember me -->
@@ -76,13 +76,13 @@ export default defineComponent({
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" id="rememberMe" type="checkbox" v-model="rememberMe">
                         <label class="form-check-label" for="rememberMe">
-                            {{ $t("Remember me") }}
+                            {{ $t("auth.rememberMe") }}
                         </label>
                     </div>
                 </div>
 
                 <button class="w-100 btn btn-primary mt-3" type="submit" :disabled="processing">
-                    {{ $t("Log in") }}
+                    {{ $t("auth.logIn") }}
                 </button>
 
                 <div class="error text-danger mt-3" v-if="error">

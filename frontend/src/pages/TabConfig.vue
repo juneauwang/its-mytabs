@@ -18,6 +18,8 @@ export default defineComponent({
             page: "",
             youtubeURL: "",
             youtubeList: [],
+            bilibiliURL: "",
+            bilibiliList: [],
             audioList: [],
             // isLocalIP: false,
             supportedFormatCommaString,
@@ -53,6 +55,7 @@ export default defineComponent({
                 const data = await res.json();
                 this.tab = data.tab;
                 this.youtubeList = data.youtubeList;
+                this.bilibiliList = data.bilibiliList;
                 this.audioList = data.audioList;
                 this.filePath = data.filePath;
                 this.showOpenButtons = data.showOpenButtons;
@@ -172,6 +175,101 @@ export default defineComponent({
 
                 notify({
                     text: "YouTube video removed successfully",
+                    type: "success",
+                });
+
+                await this.load();
+            } catch (e) {
+                generalError(e);
+            }
+        },
+
+        async addBilibili() {
+            try {
+                const url = this.bilibiliURL.trim();
+                if (!url) {
+                    throw new Error("Please enter a Bilibili URL or BV号");
+                }
+
+                // Send to api (/tab/:id/bilibili)
+                const tabID = this.tab.id;
+
+                const res = await fetch(baseURL + `/api/tab/${tabID}/bilibili`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        url,
+                    }),
+                });
+
+                await checkFetch(res);
+
+                notify({
+                    text: "Bilibili video added. Downloading...",
+                    type: "info",
+                });
+
+                this.bilibiliURL = "";
+
+                await this.load();
+
+                notify({
+                    text: "Bilibili video downloaded and ready!",
+                    type: "success",
+                });
+            } catch (e) {
+                generalError(e);
+            }
+        },
+
+        async saveBilibili(bvideo) {
+            let res;
+            try {
+                const tabID = this.tab.id;
+                res = await fetch(baseURL + `/api/tab/${tabID}/bilibili/${bvideo.bvid}`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        syncMethod: bvideo.syncMethod,
+                        simpleSync: bvideo.simpleSync,
+                        advancedSync: bvideo.advancedSync,
+                    }),
+                });
+
+                await checkFetch(res);
+
+                notify({
+                    text: "Bilibili video updated successfully",
+                    type: "success",
+                });
+            } catch (e) {
+                generalError(e);
+            }
+        },
+
+        async removeBilibili(bvideo) {
+            try {
+                if (!confirm("Are you sure you want to remove this Bilibili video? The downloaded file will also be deleted.")) {
+                    return;
+                }
+
+                const tabID = this.tab.id;
+
+                const res = await fetch(baseURL + `/api/tab/${tabID}/bilibili/${bvideo.bvid}`, {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+
+                await checkFetch(res);
+
+                notify({
+                    text: "Bilibili video removed successfully",
                     type: "success",
                 });
 
@@ -360,76 +458,76 @@ export default defineComponent({
         <div class="mt-4 mb-4">
             <router-link :to="`/tab/${tab.id}`" class="btn btn-primary">
                 <font-awesome-icon :icon='["fas", "arrow-left"]' />
-                Back to Tab
+                {{ $t('tabConfig.backToTab') }}
             </router-link>
 
             <button class="btn btn-secondary ms-2" @click.prevent="openFolder" v-if="showOpenButtons">
                 <font-awesome-icon :icon='["fas", "folder"]' />
-                Open Folder
+                {{ $t('tabConfig.openFolder') }}
             </button>
 
             <button class="btn btn-secondary ms-2" @click.prevent="openExternal" v-if="showOpenButtons">
                 <font-awesome-icon :icon='["fas", "file"]' />
-                Edit with External Tool...
+                {{ $t('tabConfig.editWithExternal') }}
             </button>
 
             <div class="mt-3">
-                Editing: {{ tab.artist }} - {{ tab.title }}
+                {{ $t('tabConfig.editing') }} {{ tab.artist }} - {{ tab.title }}
             </div>
         </div>
 
         <div class="menu">
             <div class="btn-group" role="group">
-                <router-link :to="`/tab/${tab.id}/edit/info`" class="btn btn-secondary">Info</router-link>
-                <router-link :to="`/tab/${tab.id}/edit/audio`" class="btn btn-secondary">Youtube & Audio files</router-link>
-                <router-link :to="`/tab/${tab.id}/edit/tab-file`" class="btn btn-secondary">Tab file</router-link>
+                <router-link :to="`/tab/${tab.id}/edit/info`" class="btn btn-secondary">{{ $t('common.info') }}</router-link>
+                <router-link :to="`/tab/${tab.id}/edit/audio`" class="btn btn-secondary">{{ $t('tabConfig.youtubeAndAudio') }}</router-link>
+                <router-link :to="`/tab/${tab.id}/edit/tab-file`" class="btn btn-secondary">{{ $t('tabConfig.tabFile') }}</router-link>
             </div>
         </div>
 
         <!-- Info Page -->
         <div v-if='this.page === "info"'>
-            <h2 class="mt-4 mb-4">Info</h2>
+            <h2 class="mt-4 mb-4">{{ $t('common.info') }}</h2>
             <form>
                 <!-- Tab Name -->
                 <div class="mb-3">
-                    <label for="tabName" class="form-label">Name</label>
+                    <label for="tabName" class="form-label">{{ $t('common.name') }}</label>
                     <input type="text" class="form-control" id="tabName" v-model="tab.title">
                 </div>
 
                 <!-- Artist -->
                 <div class="mb-3">
-                    <label for="tabArtist" class="form-label">Artist</label>
+                    <label for="tabArtist" class="form-label">{{ $t('common.artist') }}</label>
                     <input type="text" class="form-control" id="tabArtist" v-model="tab.artist">
                 </div>
 
                 <!-- Public (Dropdown) -->
                 <div class="mb-3">
-                    <label for="tabPublic" class="form-label">Share to public</label>
+                    <label for="tabPublic" class="form-label">{{ $t('tabConfig.shareToPublic') }}</label>
                     <select class="form-control" id="tabPublic" v-model="tab.public">
-                        <option :value="false">Private</option>
-                        <option :value="true">Public</option>
+                        <option :value="false">{{ $t('tabConfig.private') }}</option>
+                        <option :value="true">{{ $t('tabConfig.public') }}</option>
                     </select>
                 </div>
 
                 <!-- Save -->
-                <button type="submit" class="btn btn-primary me-2" @click.prevent="submitInfo()">Save</button>
+                <button type="submit" class="btn btn-primary me-2" @click.prevent="submitInfo()">{{ $t('common.save') }}</button>
             </form>
         </div>
 
         <!-- Audio Page -->
         <div v-else-if='this.page === "audio"'>
-            <h3 class="mt-4 mb-2">Youtube</h3>
+            <h3 class="mt-4 mb-2">{{ $t('tabConfig.youtube') }}</h3>
 
             <!-- Show alert if using a local ip -->
             <div class="alert alert-info mt-3" role="alert">
-                Tip: Youtube videos may not work on a private ip (such as 127.0.0.1). Please use <strong>localhost</strong> or other hostname.
+                {{ $t('tabConfig.youtubePrivateIpTip') }}
             </div>
 
             <div class="mb-3">
-                <label for="basic-url" class="form-label">Youtube URL</label>
+                <label for="basic-url" class="form-label">{{ $t('tabConfig.youtubeUrl') }}</label>
                 <div class="input-group">
                     <input type="text" class="form-control" id="basic-url" placeholder="" v-model="youtubeURL">
-                    <button class="btn btn-primary" type="button" @click.prevent="addYoutube()">Add</button>
+                    <button class="btn btn-primary" type="button" @click.prevent="addYoutube()">{{ $t('tabConfig.add') }}</button>
                 </div>
             </div>
 
@@ -448,7 +546,7 @@ export default defineComponent({
 
                     <div class="info">
                         <div class="mb-3">
-                            <strong>Video ID:</strong> <a :href="`https://www.youtube.com/watch?v=${video.videoID}`" target="_blank">{{ video.videoID }}</a>
+                            <strong>{{ $t('tabConfig.videoId') }}</strong> <a :href="`https://www.youtube.com/watch?v=${video.videoID}`" target="_blank">{{ video.videoID }}</a>
                         </div>
 
                         <SyncOptions
@@ -460,19 +558,59 @@ export default defineComponent({
                             @update:advancedSync="video.advancedSync = $event"
                         />
 
-                        <button class="btn btn-primary" @click.prevent="saveYoutube(video)">Save</button>
+                        <button class="btn btn-primary" @click.prevent="saveYoutube(video)">{{ $t('common.save') }}</button>
                     </div>
 
                     <div class="buttons">
                         <div class="btn-group">
-                            <button class="btn btn-danger" @click="removeYoutube(video)">Remove</button>
+                            <button class="btn btn-danger" @click="removeYoutube(video)">{{ $t('common.remove') }}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="mt-4 mb-2">{{ $t('tabConfig.bilibili') }}</h3>
+
+            <div class="mb-3">
+                <label for="bilibili-url" class="form-label">{{ $t('tabConfig.bilibiliUrlOrId') }}</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="bilibili-url" placeholder="https://www.bilibili.com/video/BVxxx or just BVxxx" v-model="bilibiliURL">
+                    <button class="btn btn-primary" type="button" @click.prevent="addBilibili()">{{ $t('tabConfig.addAndDownload') }}</button>
+                </div>
+                <div class="form-text">{{ $t('tabConfig.bilibiliDownloadTip') }}</div>
+            </div>
+
+            <div class="mb-4">
+                <!-- Bilibili Item -->
+                <div v-for="bvideo in bilibiliList" :key="bvideo.bvid" class="mb-3 pb-5 bilibili-item">
+                    <div class="alert alert-info">
+                        <strong>{{ $t('tabConfig.bvid') }}</strong> {{ bvideo.bvid }}
+                        <a :href="`https://www.bilibili.com/video/${bvideo.bvid}`" target="_blank" class="ms-2">{{ $t('tabConfig.openInBilibili') }}</a>
+                    </div>
+
+                    <div class="info">
+                        <SyncOptions
+                            :syncMethod="bvideo.syncMethod"
+                            :simpleSync="bvideo.simpleSync"
+                            :advancedSync="bvideo.advancedSync"
+                            @update:syncMethod="bvideo.syncMethod = $event"
+                            @update:simpleSync="bvideo.simpleSync = $event"
+                            @update:advancedSync="bvideo.advancedSync = $event"
+                        />
+
+                        <button class="btn btn-primary" @click.prevent="saveBilibili(bvideo)">{{ $t('common.save') }}</button>
+                    </div>
+
+                    <div class="buttons mt-2">
+                        <div class="btn-group">
+                            <button class="btn btn-danger" @click="removeBilibili(bvideo)">{{ $t('common.remove') }}</button>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="mb-5">
-                <h3 class="mb-5">Audio files</h3>
+                <h3 class="mb-5">{{ $t('tabConfig.audioFiles') }}</h3>
 
                 <div class="mb-5">
                     <div v-for="audio in audioList" class="audio-item mb-3 pb-3" :key="audio.id">
@@ -492,11 +630,11 @@ export default defineComponent({
                                 @update:simpleSync="audio.simpleSync = $event"
                                 @update:advancedSync="audio.advancedSync = $event"
                             />
-                            <button class="btn btn-primary" @click.prevent="saveAudio(audio)">Save</button>
+                            <button class="btn btn-primary" @click.prevent="saveAudio(audio)">{{ $t('common.save') }}</button>
                         </div>
                         <div class="buttons">
                             <div class="btn-group">
-                                <button class="btn btn-danger" @click="removeAudio(audio)">Remove</button>
+                                <button class="btn btn-danger" @click="removeAudio(audio)">{{ $t('common.remove') }}</button>
                             </div>
                         </div>
                     </div>
@@ -511,10 +649,10 @@ export default defineComponent({
                     <template #placeholder-img>&nbsp;
                     </template>
                     <template #title>
-                        Drop your audio file here
+                        {{ $t('tabConfig.dropAudioHere') }}
                     </template>
                     <template #description>
-                        Formats: mp3, ogg, flac (flac will be converted to ogg)
+                        {{ $t('tabConfig.audioFormats') }}
                     </template>
                 </Vue3Dropzone>
 
@@ -523,20 +661,20 @@ export default defineComponent({
                     class="btn btn-primary w-100 mt-4"
                     :disabled="isUploading"
                 >
-                    {{ isUploading ? "Uploading..." : "Upload" }}
+                    {{ isUploading ? $t('common.uploading') : $t('common.upload') }}
                 </button>
             </div>
         </div>
 
         <!-- Tab File Page -->
         <div v-else-if='this.page === "tab-file"' class="mb-5">
-            <h2 class="mt-4 mb-4">Method 1: Direct Edit</h2>
+            <h2 class="mt-4 mb-4">{{ $t('tabConfig.methodDirectEdit') }}</h2>
             <p>
-                If you can access the file system, you can edit/replace the tab directly, the path is:<br />
+                {{ $t('tabConfig.directEditPathTip') }}<br />
                 <strong>{{ filePath }}</strong>
             </p>
 
-            <h2 class="mt-4 mb-4">Method 2: Upload and replace the tab file</h2>
+            <h2 class="mt-4 mb-4">{{ $t('tabConfig.methodUploadReplace') }}</h2>
 
             <Vue3Dropzone
                 v-model="tabFiles"
@@ -544,9 +682,9 @@ export default defineComponent({
                 @error="dropzoneError"
             >
                 <template #title>
-                    Drop your tab here
+                    {{ $t('tabConfig.dropTabHere') }}
                 </template>
-                <template #description>Supports {{ supportedFormatCommaString }}</template>
+                <template #description>{{ $t('tabConfig.supports') }} {{ supportedFormatCommaString }}</template>
             </Vue3Dropzone>
 
             <button
@@ -554,7 +692,7 @@ export default defineComponent({
                 class="btn btn-primary w-100 mt-4"
                 :disabled="isUploading"
             >
-                {{ isUploading ? "Uploading..." : "Upload" }}
+                {{ isUploading ? $t('common.uploading') : $t('common.upload') }}
             </button>
         </div>
     </div>

@@ -154,7 +154,7 @@ export default defineComponent({
                     type="text"
                     class="form-control search-input"
                     v-model="searchQuery"
-                    placeholder="Search by title or artist..."
+                    :placeholder="$t('home.searchPlaceholder')"
                     ref="searchInput"
                     aria-label="Search tabs"
                 />
@@ -164,7 +164,7 @@ export default defineComponent({
                     type="button"
                     @click='searchQuery = ""'
                     v-if="searchQuery"
-                    aria-label="Clear search"
+                    :aria-label="$t('home.clearSearch')"
                 >
                     ✕
                 </button>
@@ -172,9 +172,9 @@ export default defineComponent({
         </div>
 
         <div class="mb-4 ms-3" v-if="ready">
-            Total Tabs: {{ filteredTabList.length }}
+            {{ $t('home.totalTabs') }} {{ filteredTabList.length }}
             <span v-if="searchQuery" class="text-muted">
-                (of {{ tabList.length }})
+                ({{ $t('home.of') }} {{ tabList.length }})
             </span>
         </div>
 
@@ -208,10 +208,10 @@ export default defineComponent({
             v-if="ready && filteredTabList.length === 0 && searchQuery"
             class="empty-state text-center py-5 mb-4 fs-5"
         >
-            <p class="text-muted">No tabs found for "{{ searchQuery }}"</p>
+            <p class="text-muted">{{ $t('home.noTabsFound') }}{{ searchQuery }}"</p>
 
             <button class="btn btn-sm btn-outline-secondary" @click='searchQuery = ""'>
-                Clear search
+                {{ $t('home.clearSearch') }}
             </button>
         </div>
     </div>

@@ -54,29 +54,29 @@ export default defineComponent({
                 <div class="left" v-show="ready">
                     <router-link to="/" v-if="isLoggedIn">
                         <font-awesome-icon :icon='["fas", "folder"]' />
-                        Tabs
+                        {{ $t('dashboard.tabs') }}
                     </router-link>
 
                     <router-link to="/new-tab" v-if="isLoggedIn">
                         <font-awesome-icon :icon='["fas", "plus"]' />
-                        New Tab
+                        {{ $t('dashboard.newTab') }}
                     </router-link>
 
                     <router-link to="/settings">
                         <font-awesome-icon :icon='["fas", "gear"]' />
-                        Settings
+                        {{ $t('dashboard.settings') }}
                     </router-link>
                 </div>
 
                 <div class="right" v-show="ready">
                     <a href="#" @click.prevent="signOut()" v-if="isLoggedIn">
                         <font-awesome-icon :icon='["fas", "arrow-right-from-bracket"]' />
-                        Log out
+                        {{ $t('dashboard.logOut') }}
                     </a>
 
                     <router-link to="/login" v-else>
                         <font-awesome-icon :icon='["fas", "arrow-right-to-bracket"]' />
-                        Log in
+                        {{ $t('dashboard.logIn') }}
                     </router-link>
                 </div>
             </div>

@@ -1,7 +1,7 @@
 import { checkAudioFormat, checkFilename, flacToOgg, tabDir } from "./util.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
-import { AudioData, AudioDataSchema, ConfigJSON, ConfigJSONSchema, SyncRequest, TabInfo, TabInfoSchema, UpdateTabFav, UpdateTabInfo, Youtube, YoutubeSchema } from "./zod.ts";
+import { AudioData, AudioDataSchema, ConfigJSON, ConfigJSONSchema, SyncRequest, TabInfo, TabInfoSchema, UpdateTabFav, UpdateTabInfo, Bilibili, BilibiliSchema, Youtube, YoutubeSchema } from "./zod.ts";
 import { kv } from "./db.ts";
 import sanitize from "sanitize-filename";
 import { supportedAudioFormatList, supportedFormatList } from "./common.ts";
@@ -160,6 +160,7 @@ export async function createTab(tabFileData: Uint8Array, ext: string, title: str
         tab,
         audio: [],
         youtube: [],
+        bilibili: [],
     };
 
     await writeConfigJSON(id.toString(), info);
@@ -225,6 +226,7 @@ export async function getOrCreateTab(id: string): Promise<TabInfo | null> {
         tab,
         audio: [],
         youtube: [],
+        bilibili: [],
     };
 
     await writeConfigJSON(id, newConfig);
@@ -459,4 +461,39 @@ export async function removeYoutube(id: string, videoID: string) {
     await updateConfigJSON(id, async (config) => {
         config.youtube = config.youtube.filter((y: Youtube) => y.videoID !== videoID);
     });
+}
+
+export async function addBilibili(id: string, bvid: string) {
+    await updateConfigJSON(id, async (config) => {
+        // Check if already exists
+        if (config.bilibili.some((b: Bilibili) => b.bvid === bvid)) {
+            throw new Error("Bilibili video already exists");
+        }
+
+        config.bilibili.push(BilibiliSchema.parse({ bvid }));
+    });
+}
+
+export async function updateBilibili(id: string, bvid: string, data: SyncRequest) {
+    await updateConfigJSON(id, async (config) => {
+        const existingIndex = config.bilibili.findIndex((b: Bilibili) => b.bvid === bvid);
+        const bilibiliData = BilibiliSchema.parse({ bvid, ...data });
+
+        if (existingIndex >= 0) {
+            config.bilibili[existingIndex] = bilibiliData;
+        } else {
+            config.bilibili.push(bilibiliData);
+        }
+    });
+}
+
+export async function removeBilibili(id: string, bvid: string) {
+    await updateConfigJSON(id, async (config) => {
+        config.bilibili = config.bilibili.filter((b: Bilibili) => b.bvid !== bvid);
+    });
+}
+
+export function getBilibiliFilePath(tabID: string, bvid: string): string {
+    // bvid may include "-p2" suffix for playlist items, e.g. bilibili-BVxxx-p2.mp4
+    return path.join(tabDir, tabID, `bilibili-${bvid}.mp4`);
 }

@@ -2,7 +2,7 @@ import { serve, ServerType } from "@hono/node-server";
 import { Context, Hono } from "@hono/hono";
 import * as fs from "@std/fs";
 import { auth, checkLogin, getCurrentSession, isFinishSetup, isLoggedIn } from "./auth.ts";
-import { SignUpSchema, SyncRequestSchema, UpdateTabFavSchema, UpdateTabInfoSchema, YoutubeAddDataSchema } from "./zod.ts";
+import { SignUpSchema, SyncRequestSchema, UpdateTabFavSchema, UpdateTabInfoSchema, YoutubeAddDataSchema, BilibiliAddDataSchema } from "./zod.ts";
 import { db, hasUser, isInitDB, kv, migrate } from "./db.ts";
 import { cors } from "@hono/hono/cors";
 import { serveStatic } from "@hono/hono/deno";
@@ -11,21 +11,25 @@ import * as path from "@std/path";
 import { supportedAudioFormatList, supportedFormatList } from "./common.ts";
 import {
     addAudio,
+    addBilibili,
     addYoutube,
     checkTabExists,
     createTab,
     deleteTab,
     fixMissingTab,
     getAllTabs,
+    getBilibiliFilePath,
     getConfigJSON,
     getTab,
     getTabFilePath,
     getTabFolderPath,
     getTabFullFilePath,
     removeAudio,
+    removeBilibili,
     removeYoutube,
     replaceTab,
     updateAudio,
+    updateBilibili,
     updateConfigJSON,
     updateTab,
     updateTabFav,
@@ -272,6 +276,7 @@ export async function main() {
                 showOpenButtons: Deno.build.standalone && Deno.build.os === "windows",
                 tab: config.tab,
                 youtubeList: config.youtube,
+                bilibiliList: config.bilibili,
                 audioList: config.audio,
                 filePath,
             });
@@ -543,6 +548,202 @@ export async function main() {
 
             return c.json({
                 ok: true,
+            });
+        } catch (e) {
+            return generalError(c, e);
+        }
+    });
+
+    // Add Bilibili (POST /api/tab/:id/bilibili) - downloads video via yt-dlp
+    app.post("/api/tab/:id/bilibili", async (c) => {
+        try {
+            await checkLogin(c);
+            const id = c.req.param("id");
+
+            const body = await c.req.json();
+            const data = BilibiliAddDataSchema.parse(body);
+
+            await checkTabExists(id);
+
+            // Extract BV号 and optional p (part number) from URL
+            let bvid = data.url.trim();
+            let pageNum = 1;
+
+            // Try to extract p parameter from URL
+            try {
+                const urlObj = new URL(bvid);
+                const p = urlObj.searchParams.get("p");
+                if (p) {
+                    pageNum = parseInt(p) || 1;
+                }
+                // Also extract BV号 from URL path
+                const bvMatch = urlObj.pathname.match(/BV[a-zA-Z0-9]+/);
+                if (bvMatch) {
+                    bvid = bvMatch[0];
+                }
+            } catch {
+                // Not a URL, treat as BV号 directly
+                const bvMatch = bvid.match(/BV[a-zA-Z0-9]+/);
+                if (bvMatch) {
+                    bvid = bvMatch[0];
+                }
+            }
+
+            if (!bvid.startsWith("BV")) {
+                throw new Error("Invalid Bilibili URL or BV号");
+            }
+
+            // Check if already downloaded
+            const outputFilename = pageNum > 1 ? `bilibili-${bvid}-p${pageNum}.mp4` : `bilibili-${bvid}.mp4`;
+            const filePath = path.join(tabDir, id, outputFilename);
+            const storeBvid = pageNum > 1 ? `${bvid}-p${pageNum}` : bvid;
+            if (!await fs.exists(filePath)) {
+                // Download via yt-dlp
+                const bilibiliUrl = `https://www.bilibili.com/video/${bvid}`;
+                const ytArgs = [
+                    bilibiliUrl,
+                    "-f", "bestvideo[height<=480]+bestaudio/best[height<=480]",
+                    "--merge-output-format", "mp4",
+                    "-o", filePath,
+                    "--add-header", "Referer:https://www.bilibili.com/",
+                    "--add-header", "Origin:https://www.bilibili.com",
+                ];
+
+                // If p parameter specified, download that specific item; otherwise just first
+                if (pageNum > 1) {
+                    ytArgs.push("--playlist-items", String(pageNum));
+                } else {
+                    ytArgs.push("--no-playlist");
+                }
+
+                const command = new Deno.Command("yt-dlp", {
+                    args: ytArgs,
+                    stdout: "piped",
+                    stderr: "piped",
+                });
+                const process = command.spawn();
+                const output = await process.output();
+
+                if (!output.success) {
+                    const stderr = new TextDecoder().decode(output.stderr);
+                    console.error("yt-dlp failed:", stderr);
+                    throw new Error(`Failed to download Bilibili video: ${stderr.slice(0, 200)}`);
+                }
+            }
+
+            await addBilibili(id, storeBvid);
+
+            return c.json({
+                ok: true,
+                bvid: storeBvid,
+            });
+        } catch (e) {
+            return generalError(c, e);
+        }
+    });
+
+    // Save Bilibili sync config (POST /api/tab/:id/bilibili/:bvid)
+    app.post("/api/tab/:id/bilibili/:bvid", async (c) => {
+        try {
+            await checkLogin(c);
+            const id = c.req.param("id");
+            const bvid = c.req.param("bvid");
+
+            const body = await c.req.json();
+            const data = SyncRequestSchema.parse(body);
+
+            await checkTabExists(id);
+            await updateBilibili(id, bvid, data);
+
+            return c.json({
+                ok: true,
+            });
+        } catch (e) {
+            return generalError(c, e);
+        }
+    });
+
+    // Remove Bilibili (DELETE /api/tab/:id/bilibili/:bvid)
+    app.delete("/api/tab/:id/bilibili/:bvid", async (c) => {
+        try {
+            await checkLogin(c);
+            const id = c.req.param("id");
+            const bvid = c.req.param("bvid");
+
+            await checkTabExists(id);
+
+            // Delete the video file
+            const filePath = getBilibiliFilePath(id, bvid);
+            if (await fs.exists(filePath)) {
+                await Deno.remove(filePath);
+            }
+
+            await removeBilibili(id, bvid);
+
+            return c.json({
+                ok: true,
+            });
+        } catch (e) {
+            return generalError(c, e);
+        }
+    });
+
+    // Serve Bilibili video file (GET /api/tab/:id/bilibili/:bvid/video)
+    app.get("/api/tab/:id/bilibili/:bvid/video", async (c) => {
+        try {
+            const id = c.req.param("id");
+            const bvid = c.req.param("bvid");
+
+            const filePath = getBilibiliFilePath(id, bvid);
+            if (!await fs.exists(filePath)) {
+                return c.text("Video not found", 404);
+            }
+
+            const stat = await Deno.stat(filePath);
+            const fileSize = stat.size;
+            const rangeHeader = c.req.header("Range");
+
+            if (rangeHeader) {
+                // Parse Range: bytes=start-end
+                const match = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+                if (match) {
+                    const start = parseInt(match[1]);
+                    const end = match[2] ? parseInt(match[2]) : fileSize - 1;
+                    const chunkSize = end - start + 1;
+
+                    const file = await Deno.open(filePath, { read: true });
+                    await file.seek(start, Deno.SeekMode.Start);
+
+                    // Read only the requested chunk
+                    const buf = new Uint8Array(chunkSize);
+                    let bytesRead = 0;
+                    while (bytesRead < chunkSize) {
+                        const n = await file.read(buf.subarray(bytesRead));
+                        if (n === null) break;
+                        bytesRead += n;
+                    }
+                    file.close();
+
+                    return new Response(buf.slice(0, bytesRead), {
+                        status: 206,
+                        headers: {
+                            "Content-Type": "video/mp4",
+                            "Content-Range": `bytes ${start}-${start + bytesRead - 1}/${fileSize}`,
+                            "Content-Length": String(bytesRead),
+                            "Accept-Ranges": "bytes",
+                        },
+                    });
+                }
+            }
+
+            // No Range header — return full file
+            const file = await Deno.open(filePath, { read: true });
+            return new Response(file.readable, {
+                headers: {
+                    "Content-Type": "video/mp4",
+                    "Content-Length": String(fileSize),
+                    "Accept-Ranges": "bytes",
+                },
             });
         } catch (e) {
             return generalError(c, e);

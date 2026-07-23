@@ -54,6 +54,20 @@ export const YoutubeAddDataSchema = z.object({
 });
 export type YoutubeData = z.infer<typeof YoutubeAddDataSchema>;
 
+// Bilibili
+export const BilibiliSchema = z.object({
+    bvid: videoID,
+    syncMethod: syncMethod.default("simple"),
+    simpleSync: simpleSync.default(0),
+    advancedSync: advancedSync.default(""),
+});
+export type Bilibili = z.infer<typeof BilibiliSchema>;
+
+export const BilibiliAddDataSchema = z.object({
+    url: z.string().min(1),
+});
+export type BilibiliAddData = z.infer<typeof BilibiliAddDataSchema>;
+
 export const SyncRequestSchema = z.object({
     syncMethod,
     simpleSync,
@@ -74,5 +88,6 @@ export const ConfigJSONSchema = z.object({
     tab: TabInfoSchema,
     audio: z.array(AudioDataSchema).default([]),
     youtube: z.array(YoutubeSchema).default([]),
+    bilibili: z.array(BilibiliSchema).default([]),
 });
 export type ConfigJSON = z.infer<typeof ConfigJSONSchema>;

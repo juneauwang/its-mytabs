@@ -120,33 +120,33 @@ export default defineComponent({
 
 <template>
     <div class="container my-container">
-        <h1 class="mb-3">Settings</h1>
+        <h1 class="mb-3">{{ $t('settings.settings') }}</h1>
 
-        <h2 class="mt-4 mb-4">Tab Player</h2>
+        <h2 class="mt-4 mb-4">{{ $t('settings.tabPlayer') }}</h2>
 
         <!--     scoreStyle: z.enum(["tab", "score-tab", "score"]).default("tab"), -->
         <div class="mb-3">
-            <label for="scoreStyle" class="form-label">Style</label>
+            <label for="scoreStyle" class="form-label">{{ $t('settings.style') }}</label>
             <select id="scoreStyle" class="form-select" v-model="setting.scoreStyle">
-                <option value="tab">Tab</option>
-                <option value="score">Score</option>
-                <option value="score-tab">Tab + Score</option>
-                <option value="horizontal-tab">Horizontal Tab</option>
+                <option value="tab">{{ $t('settings.tab') }}</option>
+                <option value="score">{{ $t('settings.score') }}</option>
+                <option value="score-tab">{{ $t('settings.tabAndScore') }}</option>
+                <option value="horizontal-tab">{{ $t('settings.horizontalTab') }}</option>
             </select>
         </div>
 
         <!-- Score Color Dropdown -->
         <div class="mb-3">
-            <label for="scoreColor" class="form-label">Tab/Score Color</label>
+            <label for="scoreColor" class="form-label">{{ $t('settings.tabScoreColor') }}</label>
             <select id="scoreColor" class="form-select" v-model="setting.scoreColor">
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
+                <option value="light">{{ $t('settings.light') }}</option>
+                <option value="dark">{{ $t('settings.dark') }}</option>
             </select>
         </div>
 
         <!-- Tab/Score Display Scale -->
         <div class="mb-3">
-            <label for="scale" class="form-label">Tab/Score Display Scale</label>
+            <label for="scale" class="form-label">{{ $t('settings.displayScale') }}</label>
             <select id="scale" class="form-select" v-model.number="setting.scale">
                 <option :value="0.8">80%</option>
                 <option :value="1">100%</option>
@@ -163,79 +163,79 @@ export default defineComponent({
         <!-- Scroll Mode -->
         <div class="mb-3">
             <label for="scrollMode" class="form-label">
-                Scroll
-                <span v-if='setting.scoreStyle === "horizontal-tab"'> (Force Smooth Scroll for Horizontal Tab)</span>
+                {{ $t('settings.scroll') }}
+                <span v-if='setting.scoreStyle === "horizontal-tab"'>{{ $t('settings.forceSmoothScroll') }}</span>
             </label>
             <select id="scrollMode" class="form-select" v-model="setting.scrollMode" :disabled='setting.scoreStyle === "horizontal-tab"'>
-                <option :value="ScrollMode.Continuous">Scroll</option>
-                <option :value="ScrollMode.Off">Off</option>
-                <option :value="ScrollMode.Smooth">Smooth Scroll</option>
+                <option :value="ScrollMode.Continuous">{{ $t('settings.scroll') }}</option>
+                <option :value="ScrollMode.Off">{{ $t('settings.off') }}</option>
+                <option :value="ScrollMode.Smooth">{{ $t('settings.smoothScroll') }}</option>
             </select>
         </div>
 
         <!-- Show Key Signature -->
         <div class="mb-3">
-            <label for="showKeySignature" class="form-label">Show Key Signature</label>
+            <label for="showKeySignature" class="form-label">{{ $t('settings.showKeySignature') }}</label>
             <select id="showKeySignature" class="form-select" v-model="setting.showKeySignature">
-                <option :value="true">Yes</option>
-                <option :value="false">No</option>
+                <option :value="true">{{ $t('common.yes') }}</option>
+                <option :value="false">{{ $t('common.no') }}</option>
             </select>
         </div>
 
         <!-- Toolbar Auto-hide -->
         <div class="mb-3">
-            <label for="toolbarAutoHide" class="form-label">Auto-hide bottom toolbar</label>
+            <label for="toolbarAutoHide" class="form-label">{{ $t('settings.autoHideToolbar') }}</label>
             <select id="toolbarAutoHide" class="form-select" v-model="setting.toolbarAutoHide">
-                <option :value="false">No</option>
-                <option :value="true">Yes</option>
+                <option :value="false">{{ $t('common.no') }}</option>
+                <option :value="true">{{ $t('common.yes') }}</option>
             </select>
         </div>
 
-        <h2 class="mt-5 mb-4">Assists</h2>
+        <h2 class="mt-5 mb-4">{{ $t('settings.assists') }}</h2>
 
         <!-- Note Color refer to SettingSchema   noteColor: z.enum(["rocksmith", "none"]).default("none"), -->
         <div class="mb-3">
-            <label for="noteColor" class="form-label">Note Color</label>
+            <label for="noteColor" class="form-label">{{ $t('settings.noteColor') }}</label>
             <select id="noteColor" class="form-select" v-model="setting.noteColor">
-                <option value="none">No Color</option>
-                <option value="rocksmith">Rocksmith 2014 Color Scheme</option>
-                <option value="louis-bass-v">Louis' 5-string Bass Color Scheme</option>
+                <option value="none">{{ $t('settings.noColor') }}</option>
+                <option value="rocksmith">{{ $t('settings.rocksmithColor') }}</option>
+                <option value="louis-bass-v">{{ $t('settings.louisBassColor') }}</option>
             </select>
         </div>
 
         <!--     cursor: z.enum(["animated", "instant", "bar", "invisible"]).default("animated"),-->
         <div class="mb-3">
-            <label for="cursor" class="form-label">Cursor Style</label>
+            <label for="cursor" class="form-label">{{ $t('settings.cursorStyle') }}</label>
             <select id="cursor" class="form-select" v-model="setting.cursor">
-                <option value="invisible">No Cursor</option>
-                <option value="animated">Cursor (Smooth)</option>
-                <option value="instant">Cursor (Instant)</option>
-                <option value="bar">Bar</option>
+                <option value="invisible">{{ $t('settings.noCursor') }}</option>
+                <option value="animated">{{ $t('settings.cursorSmooth') }}</option>
+                <option value="instant">{{ $t('settings.cursorInstant') }}</option>
+                <option value="bar">{{ $t('settings.bar') }}</option>
             </select>
         </div>
 
-        <p class="text-secondary">Tips: If you want to check if the sync points is correct, "Cursor (Instant)" is a good indicator.</p>
+        <p class="text-secondary">{{ $t('settings.cursorInstantTip') }}</p>
 
-        <h2 class="mt-5 mb-4">Tab List</h2>
+        <h2 class="mt-5 mb-4">{{ $t('settings.tabList') }}</h2>
 
         <!-- Group by artist -->
         <div class="mb-3">
-            <label for="groupByArtist" class="form-label">Group tabs by Artist</label>
+            <label for="groupByArtist" class="form-label">{{ $t('settings.groupTabsByArtist') }}</label>
             <select id="groupByArtist" class="form-select" v-model="setting.groupByArtist">
-                <option :value="false">No</option>
-                <option :value="true">Yes</option>
+                <option :value="false">{{ $t('common.no') }}</option>
+                <option :value="true">{{ $t('common.yes') }}</option>
             </select>
         </div>
 
-        <h2 class="mt-5 mb-4">Others</h2>
+        <h2 class="mt-5 mb-4">{{ $t('settings.others') }}</h2>
 
         <div class="mb-3">
-            <label class="form-label">Load/Save Settings to Server</label>
+            <label class="form-label">{{ $t('settings.loadSaveSettings') }}</label>
 
             <div class="d-flex gap-2">
-                <button class="btn btn-secondary" :disabled="isProcessing" @click.prevent="loadFromServer">Load from Server</button>
-                <button class="btn btn-secondary" :disabled="isProcessing" @click.prevent="saveToServer">Save to Server</button>
-                <button class="btn btn-danger" :disabled="isProcessing" @click.prevent="resetToDefault">Reset Local</button>
+                <button class="btn btn-secondary" :disabled="isProcessing" @click.prevent="loadFromServer">{{ $t('settings.loadFromServer') }}</button>
+                <button class="btn btn-secondary" :disabled="isProcessing" @click.prevent="saveToServer">{{ $t('settings.saveToServer') }}</button>
+                <button class="btn btn-danger" :disabled="isProcessing" @click.prevent="resetToDefault">{{ $t('settings.resetLocal') }}</button>
             </div>
         </div>
     </div>

@@ -59,30 +59,30 @@ export default defineComponent({
         <div class="form">
             <form @submit.prevent="submit">
                 <div style="font-size: 28px; font-weight: bold" class="mb-5 mt-5">
-                    It's MyTabs
+                    {{ $t("auth.itIsMyTabs") }}
                 </div>
 
                 <p class="mt-3">
-                    {{ $t("Create your admin account") }}
+                    {{ $t("auth.createAccount") }}
                 </p>
 
                 <div class="form-floating mt-3">
-                    <input id="floatingInput" v-model="email" type="email" class="form-control" :placeholder='$t("Username")' required>
-                    <label for="floatingInput">{{ $t("Email") }}</label>
+                    <input id="floatingInput" v-model="email" type="email" class="form-control" :placeholder='$t("auth.email")' required>
+                    <label for="floatingInput">{{ $t("auth.email") }}</label>
                 </div>
 
                 <div class="form-floating mt-3">
-                    <input id="floatingPassword" v-model="password" type="password" class="form-control" :placeholder='$t("Password")' required>
-                    <label for="floatingPassword">{{ $t("Password") }}</label>
+                    <input id="floatingPassword" v-model="password" type="password" class="form-control" :placeholder='$t("auth.password")' required>
+                    <label for="floatingPassword">{{ $t("auth.password") }}</label>
                 </div>
 
                 <div class="form-floating mt-3">
-                    <input id="repeat" v-model="repeatPassword" type="password" class="form-control" :placeholder='$t("Repeat Password")' required>
-                    <label for="repeat">{{ $t("Repeat Password") }}</label>
+                    <input id="repeat" v-model="repeatPassword" type="password" class="form-control" :placeholder='$t("auth.repeatPassword")' required>
+                    <label for="repeat">{{ $t("auth.repeatPassword") }}</label>
                 </div>
 
                 <button class="w-100 btn btn-primary mt-3" type="submit" :disabled="processing">
-                    {{ $t("Create") }}
+                    {{ $t("auth.create") }}
                 </button>
             </form>
         </div>
